@@ -55,12 +55,6 @@
     var xFar = ~~(height * 1/Math.tan(Math.abs(1 - finger.direction[0]) * Math.PI / 2 ));
     var yFar = ~~(height * 1/Math.tan(finger.direction[1])) * -1; // -1 because leap rad is negative
 
-    // var xFar = ~~(height * height/2 * finger.direction[0]);
-    // var yFar = ~~(height * finger.direction[1] / Math.sqrt( 1 - Math.pow(finger.direction[1], 2) ) * -1);
-    // console.log(height, finger.direction[0]);
-    // xFar = ~~(height * Math.tan(Math.PI/4 - finger.direction[0]));
-    // xFar = finger.direction[0] / (height * Math.sqrt(1 - Math.pow(finger.direction[0], 2)));
-
     var py = yFar - leapDeltaY;
     var px = space.w / 2 + xFar;
 
