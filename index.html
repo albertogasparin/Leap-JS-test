@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title>Leap Motion JavaScript Sample</title>
+  <script src="leap.min.js"></script>
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+<div id="main">
+
+  <div id="drawer"></div>
+
+</div>
+
+<div class="debug">
+  <div id="space">
+    <b id="point" style="bottom: -26.8mm; left: 47.6mm;"></b>
+  </div>
+</div>
+
+<script>
+  var controller = new Leap.Controller({ enableGestures: true }),
+
+    space = { w: 1000, h: 500 },
+    gridWidth = 250,
+    leapDeltaY = 100,
+    scale = 0.1,
+    grid = { x: space.w / gridWidth, y: space.h / gridWidth },
+    delayToShow = 80,
+
+    $space = document.getElementById('space'),
+    $point = document.getElementById('point'),
+    $drawer = document.getElementById('drawer'),
+
+    onCurrent = 0,
+    onDifferent = 0,
+    currentGrid = '',
+    oldGrid = '';
+
+
+  setupSpace();
+
+  // controller.on('ready' , function () {});
+
+  controller.on('frame', function(frame) {
+    
+    if(!frame.fingers.length) return;
+    
+    // var hand1 = frame.hands[0];
+    var finger = frame.fingers[0];
+
+    var height = finger.stabilizedTipPosition[1];
+    
+    var xFar = ~~(height * 1/Math.tan(Math.abs(1 - finger.direction[0]) * Math.PI / 2 ));
+    var yFar = ~~(height * 1/Math.tan(finger.direction[1])) * -1; // -1 because leap rad is negative
+
+    // var xFar = ~~(height * height/2 * finger.direction[0]);
+    // var yFar = ~~(height * finger.direction[1] / Math.sqrt( 1 - Math.pow(finger.direction[1], 2) ) * -1);
+    // console.log(height, finger.direction[0]);
+    // xFar = ~~(height * Math.tan(Math.PI/4 - finger.direction[0]));
+    // xFar = finger.direction[0] / (height * Math.sqrt(1 - Math.pow(finger.direction[0], 2)));
+
+    var py = yFar - leapDeltaY;
+    var px = space.w / 2 + xFar;
+
+    // snap to border
+    if(px < 0 && px > -space.w/2 ) px = 10;
+    if(px > space.w && px / space.w < 2) px = space.w -10;
+    if(py < 0 && py > -space.h/2 ) py = 10;
+    if(py > space.h && py / space.h < 2) py = space.h -10;
+
+    $point.style.bottom = py * scale + 'mm';
+    $point.style.left = px * scale + 'mm';
+
+    var gridX = ~~(px / gridWidth);
+    var gridY = ~~(py / gridWidth);
+    
+    if(gridX < 0) gridX = 0;
+    if(gridX >= grid.x) gridX = grid.x-1;
+
+    if(gridY < 0) gridY = 0;
+    if(gridY >= grid.y) gridY = grid.y-1;
+
+    var newGrid = document.getElementById('g-'+gridX+'-'+gridY);
+
+    if(!currentGrid) currentGrid = newGrid;
+
+    if(oldGrid) {
+      oldGrid.style.backgroundColor = 'transparent';
+      oldGrid = '';
+    }
+
+    if(onDifferent < 0) onDifferent = 0;
+
+    if(newGrid === currentGrid) {
+      onCurrent++;
+      onDifferent--;
+
+      if(onCurrent < delayToShow) {
+        currentGrid.style.backgroundColor = 'rgba(100,100,100,'+(onCurrent/delayToShow)+')';
+      }
+
+      if(onCurrent == delayToShow) {
+        showGridItem(gridX, gridY);
+      }
+
+    } else {
+      onDifferent++;
+
+      if(onDifferent > 20) {
+        oldGrid = currentGrid;
+        currentGrid = newGrid;
+        onCurrent = 0;
+        onDifferent = 0;
+      }
+    }
+    
+    
+    // Gesture detection
+    var gesture = frame.gestures[0];
+    if(gesture && gesture.type == 'swipe') {
+      hideGridItem();
+    }
+
+  });
+
+  controller.connect();
+
+  function setupSpace () {
+    $space.style.width = space.w * scale + 'mm';
+    $space.style.height = space.h * scale + 'mm';
+
+    // Create grid elements
+    for(var gRow = grid.y-1; gRow > -1 ; gRow--) {
+      for(var gCol = 0; gCol < grid.x; gCol++) {
+        var g = document.createElement('span');
+        g.id = 'g-'+gCol+'-'+gRow;
+        g.className = 'grid';
+        g.style.width = gridWidth * scale + 'mm';
+        g.style.height = gridWidth * scale + 'mm';
+        $space.appendChild( g );
+      }
+    }
+  }
+
+  var items = [
+    [ 
+      { name: '0-0' }, // 0-0
+      { name: '1-0' }, // 1-0
+      { name: '2-0' }, // 2-0
+      { name: '3-0' }, // 3-0
+    ],
+    [
+      { name: '0-1' }, // 0-1
+      { name: '1-1' }, // 1-1
+      { name: '2-1' }, // 2-1
+      { name: '3-1' }, // 3-1
+    ],
+  ];
+
+  var desc = '<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>';
+
+
+  function showGridItem (x, y) {
+    $drawer.innerHTML = 
+      '<h2>'+items[y][x].name+'</h2>'
+      + desc + desc + desc;
+    $drawer.classList.add('show');
+  }
+
+  function hideGridItem () {
+    // empty
+    $drawer.classList.remove('show');
+  }
+
+
+</script>
+
+</body>
+</html>
